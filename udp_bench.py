@@ -23,7 +23,7 @@ def sender(UDP_IP="127.0.0.1", UDP_PORT=5555, N=1000000, size=64, delay=0):
     print("N packets:",N)
     print("packet size:",size)
     print("delay between packets:", delay)
-    MESSAGE = bytearray([48]*64)
+    MESSAGE = bytearray([48]*size)
 
     sock = socket.socket(socket.AF_INET, # Internet
                      socket.SOCK_DGRAM) # UDP
