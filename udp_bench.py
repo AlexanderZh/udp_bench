@@ -12,11 +12,11 @@ A pair of scripts for unidirectional UDP benchmarks:
 
 import socket
 from struct import pack,unpack
-from time import perf_counter, sleep
+from time import perf_counter, sleep, time
 import argparse
 
 
-def sender(UDP_IP="127.0.0.1", UDP_PORT=5555, N=100000, size_min = 9000, size_max = 9192, size_N = 100, delay_min = 0, delay_max = 0, delay_N = 1):
+def sender(UDP_IP="10.10.10.10", UDP_PORT=6666, N=1, size_min = 6400, size_max = 64, size_N = 1, delay_min = 0, delay_max = 0, delay_N = 1):
     print("Starting sender (receiver should be already running)")
     print("target ip:",UDP_IP)
     print("target port:",UDP_PORT)
@@ -31,13 +31,13 @@ def sender(UDP_IP="127.0.0.1", UDP_PORT=5555, N=100000, size_min = 9000, size_ma
       for sz in range(0, size_N):
         size = int(size_min + (size_max - size_min)*sz/size_N)
         delay = delay_min + (delay_max - delay_min)*dly/delay_N 
-        MESSAGE = bytearray([48]*(size-8))
+        MESSAGE = bytearray([48]*(size-12))
         #send actual params
         sock.sendto(pack("IIf",N,size,delay), (UDP_IP, UDP_PORT))
         sleep(0.1)
-        #begin measurement
+		#begin measurement
         for i in range(0, N):
-          sock.sendto(pack("If",i,perf_counter()) + MESSAGE, (UDP_IP, UDP_PORT))
+          sock.sendto(pack("Id",i,time()) + MESSAGE, (UDP_IP, UDP_PORT))
           sleep(delay)
         #end measurement
         sleep(0.1) #wait 0.1s for processing on receiver side
@@ -46,7 +46,7 @@ def sender(UDP_IP="127.0.0.1", UDP_PORT=5555, N=100000, size_min = 9000, size_ma
         
     print("Complete")
 
-def receiver(UDP_IP="0.0.0.0", UDP_PORT=5555):
+def receiver(UDP_IP="10.10.10.10", UDP_PORT=6666):
     print("UDP target IP:", UDP_IP)
     print("UDP target port:", UDP_PORT)
     sock = socket.socket(socket.AF_INET, # Internet
@@ -70,7 +70,7 @@ def receiver(UDP_IP="0.0.0.0", UDP_PORT=5555):
         n_packets += 1
         
         if len(_data) > 1:
-            data.append(_data[:8] + pack('f', perf_counter()))
+            data.append(_data[:16] + pack('d', time()))
         else:
             break
       dt = perf_counter() - t0
@@ -80,7 +80,8 @@ def receiver(UDP_IP="0.0.0.0", UDP_PORT=5555):
       n_bad_packets = 0
       mean_latency = 0
       for i in range(0,n_packets-1):
-        next_packet, time1, time2 = unpack('Iff',data[i])
+        next_packet, time1, time2 = unpack('Idd',data[i])
+        print(time1, time2)
         mean_latency += time2 - time1
         if cur_packet != 0:
             delta = next_packet - cur_packet
@@ -100,6 +101,8 @@ def receiver(UDP_IP="0.0.0.0", UDP_PORT=5555):
       print("throupought:", n_packets/dt/1000, " Kpps")
       print("            ", n_packets*size*8/dt/1000000, " Mbps")
       print()
+      with open('results.txt', 'a+') as f:
+          f.write('{0};{1};{2};{3};{4};{5};{6}\n'.format(size,N_packets_sent,delay,(N_packets_sent - n_packets + 1)/N_packets_sent, mean_latency/n_packets, n_packets/dt/1000, n_packets*size*8/dt/1000000) )  
 
 #      for key in distro.keys():
 #        print("distro: ", key, ':', distro[key],"\t")
