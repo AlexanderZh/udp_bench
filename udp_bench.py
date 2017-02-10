@@ -46,7 +46,7 @@ def sender(UDP_IP="127.0.0.1", UDP_PORT=5555, N=100000, size_min = 9000, size_ma
         
     print("Complete")
 
-def receiver(UDP_IP="0.0.0.0", UDP_PORT=5555):
+def receiver(UDP_IP="0.0.0.0", UDP_PORT=5559):
     print("UDP target IP:", UDP_IP)
     print("UDP target port:", UDP_PORT)
     sock = socket.socket(socket.AF_INET, # Internet
@@ -58,6 +58,7 @@ def receiver(UDP_IP="0.0.0.0", UDP_PORT=5555):
       n_packets = 0
       #get starting packet with params
       _data, addr = sock.recvfrom(10000) # buffer size is 1024 bytes
+      print(_data, addr)
       if len(_data) == 12:
           N_packets_sent, size, delay = unpack('IIf',_data)
       else:
